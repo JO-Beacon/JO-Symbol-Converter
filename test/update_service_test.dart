@@ -10,7 +10,7 @@ void main() {
         'tag_name': 'v0.0.5+5',
         'name': 'JO-引号转换 0.0.5',
         'html_url':
-            'https://github.com/JO-Beacon/JO-Quote-Converter/releases/tag/v0.0.5%2B5',
+            'https://github.com/JO-Beacon/JO-Symbol-Converter/releases/tag/v0.0.5%2B5',
       }),
     );
 
@@ -27,7 +27,7 @@ void main() {
         'tag_name': '0.0.4+4',
         'name': '当前版本',
         'html_url':
-            'https://github.com/JO-Beacon/JO-Quote-Converter/releases/tag/v0.0.4%2B4',
+            'https://github.com/JO-Beacon/JO-Symbol-Converter/releases/tag/v0.0.4%2B4',
       }),
     );
 
@@ -49,7 +49,7 @@ void main() {
         'tag_name': 'latest',
         'name': '不规范版本',
         'html_url':
-            'https://github.com/JO-Beacon/JO-Quote-Converter/releases/latest',
+            'https://github.com/JO-Beacon/JO-Symbol-Converter/releases/latest',
       }),
     );
 

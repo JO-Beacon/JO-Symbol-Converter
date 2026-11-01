@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 final githubLatestReleaseUri = Uri.parse(
-  'https://api.github.com/repos/JO-Beacon/JO-Quote-Converter/releases/latest',
+  'https://api.github.com/repos/JO-Beacon/JO-Symbol-Converter/releases/latest',
 );
 
 typedef JsonFetcher = Future<String> Function(Uri uri);

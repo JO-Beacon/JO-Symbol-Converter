@@ -1,0 +1,33 @@
+JO-符号转换 (JO-Symbol-Converter)
+Copyright 2026 JO-Beacon
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this product except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+Third-party notices
+-------------------
+
+Source Han Sans SC (思源黑体简体中文版)
+Copyright 2014-2025 Adobe (http://www.adobe.com/), with Reserved Font Name
+"Source". Source is a trademark of Adobe in the United States and/or other
+countries.
+Licensed under the SIL Open Font License, Version 1.1. The complete license
+text is available at assets/licenses/SourceHanSans-OFL-1.1.txt.
+
+Flutter and Dart
+Copyright 2014 The Flutter Authors. All rights reserved.
+Licensed under the BSD 3-Clause License. The license text is available in the
+Flutter SDK and at https://github.com/flutter/flutter/blob/main/LICENSE.
+
+Other third-party Dart packages are distributed under their respective
+licenses. Their license texts are available in the installed application
+under "Settings > About > Open-source licenses".

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -149,6 +151,162 @@ void main() {
     await tester.tap(find.byKey(const Key('convertButton')));
     await tester.pump();
     expect(find.text('转换了 0 个符号'), findsOneWidget);
+  });
+
+  testWidgets('finds and replaces text in the source editor', (tester) async {
+    await tester.pumpWidget(QuoteConverterApp(historyStore: historyStore));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const Key('sourceField')),
+      'foo bar foo baz foo',
+    );
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyF);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('findReplaceBar')), findsOneWidget);
+    expect(
+      tester
+          .widget<AnimatedRotation>(find.byKey(const Key('findButtonArrow')))
+          .turns,
+      0.25,
+    );
+    expect(find.text('0/0'), findsOneWidget);
+    expect(find.byKey(const Key('findExecuteButton')), findsOneWidget);
+    expect(find.text('↑'), findsOneWidget);
+    expect(find.text('↓'), findsOneWidget);
+    await tester.enterText(find.byKey(const Key('findField')), 'foo');
+    await tester.pump();
+    expect(find.text('1/3'), findsOneWidget);
+
+    expect(find.byKey(const Key('findExecuteButton')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('findExecuteButton')));
+    await tester.pump();
+    expect(find.text('2/3'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('findPreviousButton')));
+    await tester.pump();
+    expect(find.text('1/3'), findsOneWidget);
+
+    await tester.enterText(find.byKey(const Key('replaceField')), 'qux');
+    await tester.tap(find.byKey(const Key('replaceButton')));
+    await tester.pump();
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const Key('sourceField')))
+          .controller
+          ?.text,
+      'qux bar foo baz foo',
+    );
+
+    await tester.tap(find.byKey(const Key('replaceAllButton')));
+    await tester.pump();
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const Key('sourceField')))
+          .controller
+          ?.text,
+      'qux bar qux baz qux',
+    );
+
+    await tester.tap(find.byKey(const Key('findButton')));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<AnimatedRotation>(find.byKey(const Key('findButtonArrow')))
+          .turns,
+      0,
+    );
+  });
+
+  testWidgets('finds and replaces text containing newlines', (tester) async {
+    await tester.pumpWidget(QuoteConverterApp(historyStore: historyStore));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const Key('sourceField')),
+      'first\nsecond',
+    );
+    await tester.tap(find.byKey(const Key('findButton')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('findField')), 'first\nsecond');
+    await tester.pump();
+    expect(find.text('1/1'), findsOneWidget);
+
+    await tester.enterText(
+      find.byKey(const Key('replaceField')),
+      'line1\nline2',
+    );
+    await tester.tap(find.byKey(const Key('replaceButton')));
+    await tester.pump();
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const Key('sourceField')))
+          .controller
+          ?.text,
+      'line1\nline2',
+    );
+  });
+
+  testWidgets('highlights all find matches in the source editor', (
+    tester,
+  ) async {
+    await tester.pumpWidget(QuoteConverterApp(historyStore: historyStore));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byKey(const Key('sourceField')), 'foo bar foo');
+    await tester.tap(find.byKey(const Key('findButton')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('findField')), 'foo');
+    await tester.pump();
+
+    final controller = tester
+        .widget<TextField>(find.byKey(const Key('sourceField')))
+        .controller!;
+    final context = tester.element(find.byKey(const Key('sourceField')));
+    final span = controller.buildTextSpan(
+      context: context,
+      style: const TextStyle(),
+      withComposing: false,
+    );
+    final highlighted = <String>[];
+    span.visitChildren((child) {
+      if (child is TextSpan && child.style?.backgroundColor != null) {
+        highlighted.add(child.text ?? '');
+      }
+      return true;
+    });
+    expect(highlighted, ['foo', 'foo']);
+  });
+
+  testWidgets('scrolls the source editor to the current find match', (
+    tester,
+  ) async {
+    await tester.pumpWidget(QuoteConverterApp(historyStore: historyStore));
+    await tester.pumpAndSettle();
+
+    final lines = List.generate(200, (index) => 'line $index').join('\n');
+    await tester.enterText(
+      find.byKey(const Key('sourceField')),
+      '$lines\nneedle',
+    );
+    await tester.tap(find.byKey(const Key('findButton')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('findField')), 'needle');
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('findExecuteButton')));
+    await tester.pumpAndSettle();
+
+    final scrollable = find
+        .descendant(
+          of: find.byKey(const Key('sourceField')),
+          matching: find.byType(Scrollable),
+        )
+        .first;
+    final position = tester.state<ScrollableState>(scrollable).position;
+    expect(position.pixels, greaterThan(0));
   });
 
   testWidgets('shows per-type converted counts in a dropdown', (tester) async {
@@ -618,6 +776,38 @@ void main() {
     expect(theme.splashFactory, NoSplash.splashFactory);
     expect(theme.splashColor, Colors.transparent);
     expect(theme.highlightColor, Colors.transparent);
+  });
+
+  testWidgets('applies the theme background to the native title bar', (
+    tester,
+  ) async {
+    if (!Platform.isWindows) return;
+    final calls = <MethodCall>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      const MethodChannel('jo_symbol_converter/window'),
+      (call) async {
+        calls.add(call);
+        return null;
+      },
+    );
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        const MethodChannel('jo_symbol_converter/window'),
+        null,
+      ),
+    );
+
+    await tester.pumpWidget(QuoteConverterApp(historyStore: historyStore));
+    await tester.pumpAndSettle();
+
+    expect(calls, isNotEmpty);
+    final last = calls.last;
+    expect(last.method, 'setTitleBar');
+    final arguments = last.arguments as Map<Object?, Object?>;
+    expect(arguments['dark'], isFalse);
+    expect(arguments['red'], 245);
+    expect(arguments['green'], 245);
+    expect(arguments['blue'], 245);
   });
 
   testWidgets('uses the bundled Source Han Sans font', (tester) async {

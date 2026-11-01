@@ -1,6 +1,6 @@
 #define MyAppName "JO-符号转换"
-#define MyAppVersion "0.0.5"
-#define MyAppFullVersion "0.0.5+5"
+#define MyAppVersion "0.0.6"
+#define MyAppFullVersion "0.0.6+6"
 #define MyAppPublisher "JO-Beacon"
 #define MyAppExeName "jo_symbol_converter.exe"
 #define MyArchiveClass "JOSymbolConverter.Archive"
@@ -31,6 +31,7 @@ Name: "chinesesimp"; MessagesFile: "compiler:Languages\ChineseSimplified.isl"
 
 [Files]
 Source: "..\build\windows\x64\runner\Release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\NOTICE"; DestDir: "{app}"; Flags: ignoreversion
 
 [Tasks]
 Name: "startmenu"; Description: "创建开始菜单项"; GroupDescription: "快捷方式："

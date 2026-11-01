@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:ui' show AppExitResponse;
 
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -19,8 +20,9 @@ extension AppLocalizationsX on BuildContext {
   dynamic get l10n => AppLocalizations.of(this);
 }
 
-const appVersion = '0.0.5+5';
+const appVersion = '0.0.6+6';
 const appAuthor = 'JO-Beacon';
+const _windowChannel = MethodChannel('jo_symbol_converter/window');
 final appAuthorUrl = Uri.parse('https://github.com/JO-Beacon/');
 
 enum AppPalette { red, yellow, green, blue, purple, gray }
@@ -171,6 +173,7 @@ class _QuoteConverterAppState extends State<QuoteConverterApp> {
       theme: _buildAppTheme(Brightness.light, _palette),
       darkTheme: _buildAppTheme(Brightness.dark, _palette),
       themeMode: _themeMode,
+      builder: (context, child) => _WindowTitleBarTheme(child: child!),
       home: ConverterPage(
         historyStore: widget.historyStore,
         archiveService: widget.archiveService,
@@ -219,6 +222,45 @@ ThemeData _buildAppTheme(Brightness brightness, AppPalette palette) {
     splashFactory: NoSplash.splashFactory,
     splashColor: Colors.transparent,
     highlightColor: Colors.transparent,
+    dialogTheme: DialogThemeData(
+      backgroundColor: colorScheme.surfaceContainerHigh,
+      surfaceTintColor: Colors.transparent,
+      elevation: 8,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+      iconColor: colorScheme.primary,
+      titleTextStyle: TextStyle(
+        fontFamily: 'SourceHanSansSC',
+        fontSize: 18,
+        fontWeight: FontWeight.w700,
+        color: colorScheme.onSurface,
+      ),
+      contentTextStyle: TextStyle(
+        fontFamily: 'SourceHanSansSC',
+        fontSize: 14,
+        height: 1.5,
+        color: colorScheme.onSurfaceVariant,
+      ),
+    ),
+    filledButtonTheme: FilledButtonThemeData(
+      style: FilledButton.styleFrom(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+        textStyle: const TextStyle(fontFamily: 'SourceHanSansSC', fontSize: 14),
+      ),
+    ),
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+        textStyle: const TextStyle(fontFamily: 'SourceHanSansSC', fontSize: 14),
+      ),
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+        textStyle: const TextStyle(fontFamily: 'SourceHanSansSC', fontSize: 14),
+      ),
+    ),
     appBarTheme: AppBarTheme(
       centerTitle: false,
       elevation: 0,
@@ -243,6 +285,109 @@ ThemeData _buildAppTheme(Brightness brightness, AppPalette palette) {
       waitDuration: Duration(milliseconds: 450),
     ),
   );
+}
+
+class _FindHighlightController extends TextEditingController {
+  List<TextRange> _matches = const [];
+  int _currentIndex = -1;
+
+  void setHighlights(List<TextRange> matches, int currentIndex) {
+    if (_currentIndex == currentIndex && listEquals(_matches, matches)) return;
+    _matches = List<TextRange>.of(matches);
+    _currentIndex = currentIndex;
+    notifyListeners();
+  }
+
+  @override
+  TextSpan buildTextSpan({
+    required BuildContext context,
+    TextStyle? style,
+    required bool withComposing,
+  }) {
+    if (withComposing &&
+        value.composing.isValid &&
+        !value.composing.isCollapsed) {
+      return super.buildTextSpan(
+        context: context,
+        style: style,
+        withComposing: withComposing,
+      );
+    }
+    final text = value.text;
+    if (_matches.isEmpty || text.isEmpty) {
+      return TextSpan(style: style, text: text);
+    }
+    final colors = Theme.of(context).colorScheme;
+    final matchColor = colors.primary.withValues(alpha: 0.18);
+    final children = <InlineSpan>[];
+    var cursor = 0;
+    for (var index = 0; index < _matches.length; index++) {
+      final match = _matches[index];
+      if (match.start < cursor || match.end > text.length) continue;
+      if (match.start > cursor) {
+        children.add(TextSpan(text: text.substring(cursor, match.start)));
+      }
+      final isCurrent = index == _currentIndex;
+      children.add(
+        TextSpan(
+          text: text.substring(match.start, match.end),
+          style: TextStyle(
+            backgroundColor: isCurrent ? colors.primary : matchColor,
+            color: isCurrent ? colors.onPrimary : null,
+          ),
+        ),
+      );
+      cursor = match.end;
+    }
+    if (cursor < text.length) {
+      children.add(TextSpan(text: text.substring(cursor)));
+    }
+    return TextSpan(style: style, children: children);
+  }
+}
+
+class _WindowTitleBarTheme extends StatefulWidget {
+  const _WindowTitleBarTheme({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_WindowTitleBarTheme> createState() => _WindowTitleBarThemeState();
+}
+
+class _WindowTitleBarThemeState extends State<_WindowTitleBarTheme> {
+  Color? _lastColor;
+  Brightness? _lastBrightness;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!Platform.isWindows) return;
+    final theme = Theme.of(context);
+    final color = theme.scaffoldBackgroundColor;
+    final brightness = theme.brightness;
+    if (color == _lastColor && brightness == _lastBrightness) return;
+    _lastColor = color;
+    _lastBrightness = brightness;
+    unawaited(_applyTitleBarTheme(color, brightness));
+  }
+
+  Future<void> _applyTitleBarTheme(Color color, Brightness brightness) async {
+    final argb = color.toARGB32();
+    try {
+      await _windowChannel.invokeMethod<void>('setTitleBar', {
+        'dark': brightness == Brightness.dark,
+        'red': (argb >> 16) & 0xFF,
+        'green': (argb >> 8) & 0xFF,
+        'blue': argb & 0xFF,
+      });
+    } catch (_) {
+      // Best-effort native decoration; ignore unsupported platforms.
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }
 
 class ConverterPage extends StatefulWidget {
@@ -276,9 +421,14 @@ class ConverterPage extends StatefulWidget {
 }
 
 class _ConverterPageState extends State<ConverterPage> {
-  final _inputController = TextEditingController();
+  final _inputController = _FindHighlightController();
   final _outputController = TextEditingController();
   final _inputFocusNode = FocusNode();
+  final _inputScrollController = ScrollController();
+  final _findController = TextEditingController();
+  final _replaceController = TextEditingController();
+  final _findFocusNode = FocusNode();
+  final _replaceFocusNode = FocusNode();
   late final DraftStore _draftStore;
   late final HistoryStore _historyStore;
   late final ArchiveService _archiveService;
@@ -296,6 +446,11 @@ class _ConverterPageState extends State<ConverterPage> {
   final Set<ConverterTool> _activeTools = {...ConverterTool.values};
   Map<ConverterTool, int>? _convertedCounts;
   List<ConversionHistoryEntry> _history = [];
+  bool _findVisible = false;
+  bool _matchCase = false;
+  bool _syncingFindHighlights = false;
+  List<TextRange> _matches = const [];
+  int _currentMatchIndex = -1;
 
   @override
   void initState() {
@@ -303,6 +458,7 @@ class _ConverterPageState extends State<ConverterPage> {
     _historyStore = widget.historyStore ?? HistoryStore();
     _archiveService = widget.archiveService ?? ArchiveService();
     _draftStore = widget.draftStore ?? DraftStore();
+    _findController.addListener(_handleFindQueryChanged);
     _lifecycleListener = AppLifecycleListener(
       onHide: _saveForLifecycleChange,
       onPause: _saveForLifecycleChange,
@@ -320,9 +476,15 @@ class _ConverterPageState extends State<ConverterPage> {
       _outputController.removeListener(_handleTextChanged);
     }
     _lifecycleListener.dispose();
+    _findController.removeListener(_handleFindQueryChanged);
     _inputController.dispose();
     _outputController.dispose();
     _inputFocusNode.dispose();
+    _inputScrollController.dispose();
+    _findController.dispose();
+    _replaceController.dispose();
+    _findFocusNode.dispose();
+    _replaceFocusNode.dispose();
     super.dispose();
   }
 
@@ -390,7 +552,11 @@ class _ConverterPageState extends State<ConverterPage> {
   }
 
   void _handleTextChanged() {
-    setState(() {});
+    if (_syncingFindHighlights) return;
+    setState(() {
+      if (_findVisible) _refreshMatches(keepIndex: true);
+    });
+    if (_findVisible) _syncFindHighlights();
     _scheduleSave();
   }
 
@@ -481,9 +647,168 @@ class _ConverterPageState extends State<ConverterPage> {
 
   void _clear() {
     _convertedCounts = null;
+    _findVisible = false;
+    _matches = const [];
+    _currentMatchIndex = -1;
+    _findController.clear();
+    _replaceController.clear();
     _inputController.clear();
     _outputController.clear();
+    _syncFindHighlights();
     _inputFocusNode.requestFocus();
+  }
+
+  List<TextRange> _computeMatches() {
+    final query = _findController.text;
+    if (query.isEmpty) return const [];
+    final pattern = RegExp(RegExp.escape(query), caseSensitive: _matchCase);
+    return pattern
+        .allMatches(_inputController.text)
+        .map((match) => TextRange(start: match.start, end: match.end))
+        .toList(growable: false);
+  }
+
+  void _refreshMatches({bool keepIndex = false}) {
+    final matches = _computeMatches();
+    _matches = matches;
+    if (matches.isEmpty) {
+      _currentMatchIndex = -1;
+      return;
+    }
+    if (!keepIndex || _currentMatchIndex < 0) {
+      _currentMatchIndex = 0;
+    } else if (_currentMatchIndex >= matches.length) {
+      _currentMatchIndex = matches.length - 1;
+    }
+  }
+
+  void _handleFindQueryChanged() {
+    setState(() => _refreshMatches());
+    _syncFindHighlights();
+  }
+
+  void _syncFindHighlights() {
+    _syncingFindHighlights = true;
+    _inputController.setHighlights(_matches, _currentMatchIndex);
+    _syncingFindHighlights = false;
+  }
+
+  void _openFindBar({bool focusReplace = false}) {
+    final selection = _inputController.selection;
+    if (!_findVisible &&
+        selection.isValid &&
+        !selection.isCollapsed &&
+        selection.start >= 0 &&
+        selection.end <= _inputController.text.length) {
+      _findController.text = _inputController.text.substring(
+        selection.start,
+        selection.end,
+      );
+    }
+    setState(() {
+      _findVisible = true;
+      _refreshMatches();
+    });
+    _syncFindHighlights();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      (focusReplace ? _replaceFocusNode : _findFocusNode).requestFocus();
+    });
+  }
+
+  void _closeFindBar() {
+    setState(() {
+      _findVisible = false;
+      _matches = const [];
+      _currentMatchIndex = -1;
+    });
+    _syncFindHighlights();
+    _inputFocusNode.requestFocus();
+  }
+
+  void _toggleFindBar() {
+    if (_findVisible) {
+      _closeFindBar();
+    } else {
+      _openFindBar();
+    }
+  }
+
+  void _selectCurrentMatch() {
+    if (_matches.isEmpty || _currentMatchIndex < 0) return;
+    final match = _matches[_currentMatchIndex];
+    _inputController.selection = TextSelection(
+      baseOffset: match.start,
+      extentOffset: match.end,
+    );
+  }
+
+  void _revealCurrentMatch() {
+    _selectCurrentMatch();
+    // Focusing the editor makes EditableText scroll the selection into view;
+    // then hand focus back to the find field so typing can continue there.
+    _inputFocusNode.requestFocus();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_findVisible) return;
+      _findFocusNode.requestFocus();
+    });
+  }
+
+  void _findNext({required bool forward}) {
+    if (_matches.isEmpty) return;
+    final count = _matches.length;
+    final next = forward
+        ? (_currentMatchIndex + 1) % count
+        : (_currentMatchIndex - 1 + count) % count;
+    setState(() => _currentMatchIndex = next);
+    _revealCurrentMatch();
+    _syncFindHighlights();
+  }
+
+  void _replaceCurrent() {
+    if (_matches.isEmpty || _currentMatchIndex < 0) return;
+    final match = _matches[_currentMatchIndex];
+    final replacement = _replaceController.text;
+    final text = _inputController.text;
+    final updated = text.replaceRange(match.start, match.end, replacement);
+    final cursor = match.start + replacement.length;
+    _inputController.value = TextEditingValue(
+      text: updated,
+      selection: TextSelection.collapsed(offset: cursor),
+    );
+    setState(() {
+      _refreshMatches();
+      final next = _matches.indexWhere(
+        (candidate) => candidate.start >= cursor,
+      );
+      _currentMatchIndex = next == -1 ? (_matches.isEmpty ? -1 : 0) : next;
+    });
+    _revealCurrentMatch();
+    _syncFindHighlights();
+  }
+
+  void _replaceAll() {
+    final query = _findController.text;
+    if (query.isEmpty) return;
+    final pattern = RegExp(RegExp.escape(query), caseSensitive: _matchCase);
+    final updated = _inputController.text.replaceAllMapped(
+      pattern,
+      (_) => _replaceController.text,
+    );
+    _inputController.value = TextEditingValue(
+      text: updated,
+      selection: TextSelection.collapsed(offset: updated.length),
+    );
+    setState(() => _refreshMatches());
+    _syncFindHighlights();
+  }
+
+  void _toggleMatchCase() {
+    setState(() {
+      _matchCase = !_matchCase;
+      _refreshMatches();
+    });
+    _syncFindHighlights();
   }
 
   Future<void> _confirmClear() async {
@@ -815,6 +1140,10 @@ class _ConverterPageState extends State<ConverterPage> {
           ? const {
               SingleActivator(LogicalKeyboardKey.enter, control: true):
                   _ConvertIntent(),
+              SingleActivator(LogicalKeyboardKey.keyF, control: true):
+                  _FindIntent(),
+              SingleActivator(LogicalKeyboardKey.keyH, control: true):
+                  _ReplaceIntent(),
             }
           : const <ShortcutActivator, Intent>{},
       child: Actions(
@@ -822,6 +1151,18 @@ class _ConverterPageState extends State<ConverterPage> {
           _ConvertIntent: CallbackAction<_ConvertIntent>(
             onInvoke: (_) {
               unawaited(_convert());
+              return null;
+            },
+          ),
+          _FindIntent: CallbackAction<_FindIntent>(
+            onInvoke: (_) {
+              _openFindBar();
+              return null;
+            },
+          ),
+          _ReplaceIntent: CallbackAction<_ReplaceIntent>(
+            onInvoke: (_) {
+              _openFindBar(focusReplace: true);
               return null;
             },
           ),
@@ -912,11 +1253,15 @@ class _ConverterPageState extends State<ConverterPage> {
   Widget _buildInputEditor() {
     return _EditorPane(
       title: context.l10n.source,
+      fieldKey: const Key('sourceField'),
+      scrollController: _inputScrollController,
       characterCount: _inputController.text.length,
       controller: _inputController,
       focusNode: _inputFocusNode,
       hintText: context.l10n.sourceHint,
       titleActions: _EditorActions(
+        onFindToggle: _toggleFindBar,
+        findOpen: _findVisible,
         onClear: _inputController.text.isEmpty && _outputController.text.isEmpty
             ? null
             : _confirmClear,
@@ -924,12 +1269,174 @@ class _ConverterPageState extends State<ConverterPage> {
         activeTools: _activeTools,
         onToolToggled: _toggleActiveTool,
       ),
+      toolbar: _findVisible ? _buildFindReplaceBar() : null,
+    );
+  }
+
+  Widget _buildFindReplaceBar() {
+    final l10n = context.l10n;
+    final theme = Theme.of(context);
+    final query = _findController.text;
+    final countLabel = query.isEmpty
+        ? l10n.matchCount(0, 0)
+        : _matches.isEmpty
+        ? l10n.noMatches
+        : l10n.matchCount(_currentMatchIndex + 1, _matches.length);
+    final compactButtonStyle = TextButton.styleFrom(
+      minimumSize: const Size(0, 30),
+      padding: const EdgeInsets.symmetric(horizontal: 7),
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      visualDensity: VisualDensity.compact,
+      textStyle: const TextStyle(fontFamily: 'SourceHanSansSC', fontSize: 12),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+    );
+    final iconButtonStyle = IconButton.styleFrom(
+      minimumSize: const Size.square(30),
+      maximumSize: const Size.square(30),
+      padding: EdgeInsets.zero,
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      visualDensity: VisualDensity.compact,
+      foregroundColor: theme.colorScheme.onSurfaceVariant,
+      disabledForegroundColor: theme.colorScheme.onSurfaceVariant.withValues(
+        alpha: 0.45,
+      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+    );
+    return Container(
+      key: const Key('findReplaceBar'),
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  key: const Key('findField'),
+                  controller: _findController,
+                  focusNode: _findFocusNode,
+                  style: const TextStyle(
+                    fontFamily: 'SourceHanSansSC',
+                    fontSize: 13,
+                  ),
+                  minLines: 1,
+                  maxLines: 4,
+                  keyboardType: TextInputType.multiline,
+                  textInputAction: TextInputAction.newline,
+                  textAlignVertical: TextAlignVertical.top,
+                  decoration: InputDecoration(
+                    isDense: true,
+                    hintText: l10n.findHint,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 8,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Text(countLabel, style: theme.textTheme.bodySmall),
+              TextButton(
+                key: const Key('findExecuteButton'),
+                onPressed: _matches.isEmpty
+                    ? null
+                    : () => _findNext(forward: true),
+                style: compactButtonStyle,
+                child: Text(l10n.findNext),
+              ),
+              IconButton(
+                key: const Key('findPreviousButton'),
+                onPressed: _matches.isEmpty
+                    ? null
+                    : () => _findNext(forward: false),
+                tooltip: l10n.findPrevious,
+                style: iconButtonStyle,
+                icon: const Text('↑', style: TextStyle(fontSize: 16)),
+              ),
+              IconButton(
+                key: const Key('findNextButton'),
+                onPressed: _matches.isEmpty
+                    ? null
+                    : () => _findNext(forward: true),
+                tooltip: l10n.findNext,
+                style: iconButtonStyle,
+                icon: const Text('↓', style: TextStyle(fontSize: 16)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  key: const Key('replaceField'),
+                  controller: _replaceController,
+                  focusNode: _replaceFocusNode,
+                  style: const TextStyle(
+                    fontFamily: 'SourceHanSansSC',
+                    fontSize: 13,
+                  ),
+                  minLines: 1,
+                  maxLines: 4,
+                  keyboardType: TextInputType.multiline,
+                  textInputAction: TextInputAction.newline,
+                  textAlignVertical: TextAlignVertical.top,
+                  decoration: InputDecoration(
+                    isDense: true,
+                    hintText: l10n.replaceHint,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 8,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+              TextButton(
+                key: const Key('matchCaseButton'),
+                onPressed: _toggleMatchCase,
+                style: compactButtonStyle.copyWith(
+                  backgroundColor: WidgetStatePropertyAll(
+                    _matchCase
+                        ? theme.colorScheme.secondaryContainer
+                        : Colors.transparent,
+                  ),
+                  foregroundColor: WidgetStatePropertyAll(
+                    _matchCase
+                        ? theme.colorScheme.onSecondaryContainer
+                        : theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                child: const Text('Aa'),
+              ),
+              TextButton(
+                key: const Key('replaceButton'),
+                onPressed: _matches.isEmpty ? null : _replaceCurrent,
+                style: compactButtonStyle,
+                child: Text(l10n.replace),
+              ),
+              TextButton(
+                key: const Key('replaceAllButton'),
+                onPressed: _matches.isEmpty ? null : _replaceAll,
+                style: compactButtonStyle,
+                child: Text(l10n.replaceAll),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildOutputEditor() {
     return _EditorPane(
       title: context.l10n.result,
+      fieldKey: const Key('resultField'),
       characterCount: _outputController.text.length,
       controller: _outputController,
       hintText: context.l10n.resultHint,
@@ -946,6 +1453,14 @@ class _ConverterPageState extends State<ConverterPage> {
 
 class _ConvertIntent extends Intent {
   const _ConvertIntent();
+}
+
+class _FindIntent extends Intent {
+  const _FindIntent();
+}
+
+class _ReplaceIntent extends Intent {
+  const _ReplaceIntent();
 }
 
 class HistoryPage extends StatefulWidget {
@@ -1357,7 +1872,10 @@ class _HistoryEntryView extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   visualDensity: VisualDensity.compact,
-                  textStyle: const TextStyle(fontSize: 13),
+                  textStyle: const TextStyle(
+                    fontFamily: 'SourceHanSansSC',
+                    fontSize: 13,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(6),
                   ),
@@ -3095,12 +3613,16 @@ class _StaggeredMenuItem extends StatelessWidget {
 
 class _EditorActions extends StatefulWidget {
   const _EditorActions({
+    required this.onFindToggle,
+    required this.findOpen,
     required this.onClear,
     required this.onConvert,
     required this.activeTools,
     required this.onToolToggled,
   });
 
+  final VoidCallback onFindToggle;
+  final bool findOpen;
   final VoidCallback? onClear;
   final VoidCallback? onConvert;
   final Set<ConverterTool> activeTools;
@@ -3134,6 +3656,41 @@ class _EditorActionsState extends State<_EditorActions> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
+        OutlinedButton(
+          key: const Key('findButton'),
+          onPressed: widget.onFindToggle,
+          style: OutlinedButton.styleFrom(
+            minimumSize: const Size(0, 30),
+            padding: const EdgeInsets.only(left: 9, right: 6),
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            visualDensity: VisualDensity.compact,
+            textStyle: const TextStyle(
+              fontFamily: 'SourceHanSansSC',
+              fontSize: 13,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(6),
+            ),
+            side: BorderSide(
+              color: Theme.of(context).colorScheme.outlineVariant,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(l10n.find),
+              const SizedBox(width: 4),
+              AnimatedRotation(
+                key: const Key('findButtonArrow'),
+                turns: widget.findOpen ? 0.25 : 0,
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOutCubic,
+                child: const Icon(Icons.chevron_right_rounded, size: 16),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 4),
         FilledButton.icon(
           key: const Key('clearButton'),
           onPressed: widget.onClear,
@@ -3142,7 +3699,10 @@ class _EditorActionsState extends State<_EditorActions> {
             padding: const EdgeInsets.symmetric(horizontal: 9),
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             visualDensity: VisualDensity.compact,
-            textStyle: const TextStyle(fontSize: 13),
+            textStyle: const TextStyle(
+              fontFamily: 'SourceHanSansSC',
+              fontSize: 13,
+            ),
             shape: buttonShape,
             backgroundColor: Theme.of(context).colorScheme.error,
             foregroundColor: Theme.of(context).colorScheme.onError,
@@ -3198,7 +3758,10 @@ class _EditorActionsState extends State<_EditorActions> {
                     padding: const EdgeInsets.only(left: 9, right: 6),
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     visualDensity: VisualDensity.compact,
-                    textStyle: const TextStyle(fontSize: 13),
+                    textStyle: const TextStyle(
+                      fontFamily: 'SourceHanSansSC',
+                      fontSize: 13,
+                    ),
                     shape: leadingShape,
                   ),
                   icon: const Icon(Icons.sync_alt_rounded, size: 16),
@@ -3290,7 +3853,10 @@ class _ConvertedCountMenu extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 6),
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             visualDensity: VisualDensity.compact,
-            textStyle: const TextStyle(fontSize: 13),
+            textStyle: const TextStyle(
+              fontFamily: 'SourceHanSansSC',
+              fontSize: 13,
+            ),
             foregroundColor: theme.colorScheme.onSurfaceVariant,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(6),
@@ -3329,7 +3895,7 @@ class _CopyAction extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 9),
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         visualDensity: VisualDensity.compact,
-        textStyle: const TextStyle(fontSize: 13),
+        textStyle: const TextStyle(fontFamily: 'SourceHanSansSC', fontSize: 13),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
       ),
       icon: const Icon(Icons.content_copy_rounded, size: 16),
@@ -3348,6 +3914,9 @@ class _EditorPane extends StatelessWidget {
     this.readOnly = false,
     this.titleActions,
     this.status,
+    this.toolbar,
+    this.fieldKey,
+    this.scrollController,
   });
 
   final String title;
@@ -3358,6 +3927,9 @@ class _EditorPane extends StatelessWidget {
   final bool readOnly;
   final Widget? titleActions;
   final Widget? status;
+  final Widget? toolbar;
+  final Key? fieldKey;
+  final ScrollController? scrollController;
 
   @override
   Widget build(BuildContext context) {
@@ -3402,16 +3974,23 @@ class _EditorPane extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 6),
+        if (toolbar != null) ...[toolbar!, const SizedBox(height: 6)],
         Expanded(
           child: TextField(
+            key: fieldKey,
             controller: controller,
+            scrollController: scrollController,
             focusNode: focusNode,
             readOnly: readOnly,
             expands: true,
             minLines: null,
             maxLines: null,
             textAlignVertical: TextAlignVertical.top,
-            style: const TextStyle(fontSize: 16, height: 1.65),
+            style: const TextStyle(
+              fontFamily: 'SourceHanSansSC',
+              fontSize: 16,
+              height: 1.65,
+            ),
             decoration: InputDecoration(hintText: hintText),
           ),
         ),

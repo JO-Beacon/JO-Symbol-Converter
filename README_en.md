@@ -1,10 +1,8 @@
-# JO-Quote-Converter
+# JO-Symbol-Converter
 
 > Simplified Chinese: [README.md](README.md)
 
-> The repository name remains `JO-Quote-Converter`; the app name, Dart package name, Windows executable, and Android application identifier have all been renamed to match “JO Symbol Converter”.
-
-JO-Quote-Converter is a local Flutter text tool that converts English straight quotes into Chinese curly quotes and English half-width commas, colons, exclamation marks, question marks, and semicolons into their Chinese full-width counterparts. It targets Windows and Android. Text processing and draft saving happen locally on the device; only manual update checks access GitHub Releases.
+JO-Symbol-Converter is a local Flutter text tool that converts English straight quotes into Chinese curly quotes and English half-width commas, colons, exclamation marks, question marks, and semicolons into their Chinese full-width counterparts. It targets Windows and Android. Text processing and draft saving happen locally on the device; only manual update checks access GitHub Releases.
 
 Author: GitHub [JO-Beacon](https://github.com/JO-Beacon)
 
@@ -45,6 +43,7 @@ Author: GitHub [JO-Beacon](https://github.com/JO-Beacon)
 - Settings use categorized lists for language, appearance, behavior, keyboard shortcuts, data and archives, and about; UI language supports Simplified Chinese and English, defaulting to Simplified Chinese
 - Windows supports `Ctrl+Enter` to convert the current text, and keyboard shortcuts can be disabled from Shortcut Settings
 - The Convert button has a multi-select dropdown menu for “Quotes”, “Commas”, “Colons”, “Exclamations”, “Question marks”, and “Semicolons”, with all types selected by default; the button applies every selected type in one tap (disabled when none is selected)
+- The Windows title bar follows the app background color and disables the Mica effect
 - Desktop wide-screen workspace uses a left-right split; narrow screens automatically switch to a top-bottom layout
 
 ## Usage
@@ -123,6 +122,6 @@ Report security vulnerabilities privately according to the [Security Policy](SEC
 
 ## License
 
-The project source code is licensed under the [Apache License 2.0](LICENSE).
+The project source code is licensed under the [Apache License 2.0](LICENSE); copyright and third-party component notices are provided in [NOTICE](NOTICE).
 
 The bundled Source Han Sans font is provided by Adobe and licensed under the [SIL Open Font License 1.1](assets/licenses/SourceHanSans-OFL-1.1.txt). Third-party dependencies remain under their respective licenses; the Apache License 2.0 does not override those third-party contents.

@@ -5,7 +5,7 @@
 ## 1. 项目事实
 
 - 项目名称：JO-符号转换。
-- 当前版本：`0.0.5+5`。
+- 当前版本：`0.0.6+6`。
 - 作者：GitHub 用户 `JO-Beacon`。
 - 技术栈：Flutter / Dart。
 - 当前维护平台：Windows、Android。

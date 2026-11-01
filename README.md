@@ -1,7 +1,5 @@
 # JO-符号转换
 
-> 仓库名仍为 `JO-Quote-Converter`；应用名称、Dart 包名、Windows 可执行文件和 Android 应用标识均已改为“JO-符号转换”对应命名。
-
 > English: [README_en.md](README_en.md)
 
 JO-符号转换是一个使用 Flutter 开发的本地文本工具，用于将英文直引号转换为中文弯引号，也可将英文半角逗号、半角冒号、半角感叹号、半角问号、半角分号分别转换为对应中文全角符号。目前面向 Windows 和 Android，文本处理与草稿保存均在设备本地完成；手动检查更新时会访问 GitHub Releases。
@@ -45,6 +43,7 @@ JO-符号转换是一个使用 Flutter 开发的本地文本工具，用于将�
 - 设置使用分类列表，分别提供语言、外观、行为、快捷键、数据与存档和关于页面；界面语言支持简体中文和英语，默认使用简体中文
 - Windows 支持使用 `Ctrl+Enter` 转换当前文本，并可在快捷键设置中统一关闭键盘快捷键
 - “转换”按钮带有下拉菜单，默认全部勾选“转换引号”“转换逗号”“转换冒号”“转换感叹号”“转换问号”“转换分号”，也可取消其中任意几种；按钮一键按所选类型依次转换（未勾选任何类型时按钮不可用）
+- Windows 标题栏跟随应用底色，并关闭云母（Mica）效果
 - 桌面端使用左右分栏，窄屏设备自动切换为上下布局
 
 ## 使用
@@ -123,6 +122,6 @@ installer/              Windows Inno Setup 安装程序脚本
 
 ## 许可证
 
-项目源代码采用 [Apache License 2.0](LICENSE) 许可。
+项目源代码采用 [Apache License 2.0](LICENSE) 许可；版权与第三方组件声明见 [NOTICE](NOTICE)。
 
 内置的思源黑体由 Adobe 提供，采用 [SIL Open Font License 1.1](assets/licenses/SourceHanSans-OFL-1.1.txt) 许可。第三方依赖仍遵循各自的许可证，Apache License 2.0 不会覆盖这些第三方内容。
