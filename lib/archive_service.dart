@@ -11,6 +11,7 @@ import 'package:path_provider/path_provider.dart';
 
 import 'draft_store.dart';
 import 'history_store.dart';
+import 'l10n/app_localizations.dart';
 
 const archiveExtension = 'josymbolconverter';
 const legacyArchiveExtension = 'joquoteconverter';
@@ -80,6 +81,8 @@ class AutomaticBackup {
 }
 
 class ArchiveService {
+  static dynamic get _l10n => AppLocalizations.strings;
+
   ArchiveService({
     Future<Directory> Function()? supportDirectoryProvider,
     ArchiveFilePicker? filePicker,
@@ -89,7 +92,7 @@ class ArchiveService {
            filePicker ??
            ((acceptedTypeGroups) => openFile(
              acceptedTypeGroups: acceptedTypeGroups,
-             confirmButtonText: '导入',
+             confirmButtonText: _l10n.archiveImportButton,
            )),
        _androidArchiveSaver =
            androidArchiveSaver ??
@@ -184,14 +187,14 @@ class ArchiveService {
 
   ArchiveDocument decode(List<int> bytes) {
     if (bytes.isEmpty || bytes.length > _maxArchiveBytes) {
-      throw const ArchiveFormatException('存档为空或文件过大。');
+      throw ArchiveFormatException(_l10n.archiveErrorEmptyOrTooLarge);
     }
 
     Archive archive;
     try {
       archive = ZipDecoder().decodeBytes(bytes, verify: true);
     } catch (_) {
-      throw const ArchiveFormatException('无法解压存档。');
+      throw ArchiveFormatException(_l10n.archiveErrorUnzipFailed);
     }
 
     final files = <String, Uint8List>{};
@@ -199,18 +202,18 @@ class ArchiveService {
     for (final file in archive.files) {
       if (!file.isFile) continue;
       if (file.name.contains('/') || file.name.contains('\\')) {
-        throw const ArchiveFormatException('存档包含无效路径。');
+        throw ArchiveFormatException(_l10n.archiveErrorInvalidPath);
       }
       if (files.containsKey(file.name) || file.size > _maxEntryBytes) {
-        throw const ArchiveFormatException('存档文件重复或内容过大。');
+        throw ArchiveFormatException(_l10n.archiveErrorDuplicateFile);
       }
       totalUncompressedBytes += file.size;
       if (totalUncompressedBytes > _maxArchiveBytes) {
-        throw const ArchiveFormatException('存档解压后内容过大。');
+        throw ArchiveFormatException(_l10n.archiveErrorTooLargeAfterExtract);
       }
       final content = file.readBytes();
       if (content == null) {
-        throw const ArchiveFormatException('存档内容无法读取。');
+        throw ArchiveFormatException(_l10n.archiveErrorUnreadable);
       }
       files[file.name] = content;
     }
@@ -222,30 +225,36 @@ class ArchiveService {
     };
     if (files.length != requiredNames.length ||
         !files.keys.toSet().containsAll(requiredNames)) {
-      throw const ArchiveFormatException('存档结构不完整。');
+      throw ArchiveFormatException(_l10n.archiveErrorIncomplete);
     }
 
-    final checksums = _decodeObject(files[_checksumsName]!, '校验信息');
+    final checksums = _decodeObject(
+      files[_checksumsName]!,
+      _l10n.archiveLabelChecksums,
+    );
     if (checksums['algorithm'] != 'SHA-256') {
-      throw const ArchiveFormatException('不支持此校验算法。');
+      throw ArchiveFormatException(_l10n.archiveErrorUnsupportedChecksum);
     }
     final checksumFiles = checksums['files'];
     if (checksumFiles is! Map<String, dynamic>) {
-      throw const ArchiveFormatException('校验信息无效。');
+      throw ArchiveFormatException(_l10n.archiveErrorInvalidChecksumInfo);
     }
     for (final name in requiredNames.where((name) => name != _checksumsName)) {
       final expected = checksumFiles[name];
       final actual = sha256.convert(files[name]!).toString();
       if (expected is! String || expected != actual) {
-        throw ArchiveFormatException('$name 校验失败。');
+        throw ArchiveFormatException(_l10n.archiveErrorChecksumFailed(name));
       }
     }
 
-    final manifest = _decodeObject(files[_manifestName]!, '存档清单');
+    final manifest = _decodeObject(
+      files[_manifestName]!,
+      _l10n.archiveLabelManifest,
+    );
     final format = manifest['format'];
     if ((format != 'JO-Quote-Converter' && format != 'JO-Symbol-Converter') ||
         manifest['formatVersion'] != formatVersion) {
-      throw const ArchiveFormatException('不支持此存档版本。');
+      throw ArchiveFormatException(_l10n.archiveErrorUnsupportedVersion);
     }
     final appVersion = manifest['appVersion'];
     final exportedAtValue = manifest['exportedAt'];
@@ -254,21 +263,24 @@ class ArchiveService {
         exportedAtValue is! String ||
         historyCount is! int ||
         manifest['encrypted'] != false) {
-      throw const ArchiveFormatException('存档清单无效。');
+      throw ArchiveFormatException(_l10n.archiveErrorInvalidManifest);
     }
     final exportedAt = DateTime.tryParse(exportedAtValue);
     if (exportedAt == null) {
-      throw const ArchiveFormatException('存档导出时间无效。');
+      throw ArchiveFormatException(_l10n.archiveErrorInvalidExportTime);
     }
 
-    final workspace = _decodeObject(files[_workspaceName]!, '工作区数据');
+    final workspace = _decodeObject(
+      files[_workspaceName]!,
+      _l10n.archiveLabelWorkspace,
+    );
     final input = workspace['input'];
     final output = workspace['output'];
     final settings = workspace['settings'];
     if (input is! String ||
         output is! String ||
         settings is! Map<String, dynamic>) {
-      throw const ArchiveFormatException('工作区数据无效。');
+      throw ArchiveFormatException(_l10n.archiveErrorInvalidWorkspace);
     }
     final excludeMarkdownCode = settings['excludeMarkdownCode'];
     final useHeuristics = settings['useHeuristics'];
@@ -292,11 +304,14 @@ class ArchiveService {
         }.contains(palette) ||
         (locale != null &&
             (locale is! String || !const {'zh', 'en'}.contains(locale)))) {
-      throw const ArchiveFormatException('存档设置无效。');
+      throw ArchiveFormatException(_l10n.archiveErrorInvalidSettings);
     }
 
     final history = <ConversionHistoryEntry>[];
-    final historyText = _decodeUtf8(files[_historyName]!, '历史记录');
+    final historyText = _decodeUtf8(
+      files[_historyName]!,
+      _l10n.archiveLabelHistory,
+    );
     if (historyText.isNotEmpty) {
       for (final line in const LineSplitter().convert(historyText)) {
         final decoded = _decodeJsonLine(line);
@@ -309,7 +324,7 @@ class ArchiveService {
         if (historyInput is! String ||
             historyOutput is! String ||
             createdAt == null) {
-          throw const ArchiveFormatException('历史记录内容无效。');
+          throw ArchiveFormatException(_l10n.archiveErrorInvalidHistory);
         }
         history.add(
           ConversionHistoryEntry(
@@ -321,7 +336,7 @@ class ArchiveService {
       }
     }
     if (history.length != historyCount) {
-      throw const ArchiveFormatException('历史记录数量与清单不一致。');
+      throw ArchiveFormatException(_l10n.archiveErrorHistoryMismatch);
     }
 
     return ArchiveDocument(
@@ -349,7 +364,8 @@ class ArchiveService {
     DateTime? now,
   }) async {
     final exportTime = now ?? DateTime.now();
-    final name = 'JO-符号转换-${_fileTimestamp(exportTime)}.$archiveExtension';
+    final name =
+        '${_l10n.archiveFileNamePrefix}-${_fileTimestamp(exportTime)}.$archiveExtension';
     final data = encode(
       snapshot: snapshot,
       appVersion: appVersion,
@@ -359,15 +375,15 @@ class ArchiveService {
       return await _androidArchiveSaver(name, data) != null;
     }
     final location = await getSaveLocation(
-      acceptedTypeGroups: const [
+      acceptedTypeGroups: [
         XTypeGroup(
-          label: 'JO-符号转换存档',
-          extensions: [archiveExtension],
-          mimeTypes: [archiveMimeType],
+          label: _l10n.archiveTypeLabel,
+          extensions: const [archiveExtension],
+          mimeTypes: const [archiveMimeType],
         ),
       ],
       suggestedName: name,
-      confirmButtonText: '导出',
+      confirmButtonText: _l10n.archiveExportButton,
     );
     if (location == null) return false;
     final archiveFile = XFile.fromData(
@@ -382,29 +398,25 @@ class ArchiveService {
   Future<ArchiveDocument?> pickAndDecode() async {
     final file = await _filePicker(
       _isAndroid
-          ? const [XTypeGroup(label: 'JO-符号转换存档')]
-          : const [
+          ? [XTypeGroup(label: _l10n.archiveTypeLabel)]
+          : [
               XTypeGroup(
-                label: 'JO-符号转换存档',
+                label: _l10n.archiveTypeLabel,
                 extensions: archiveExtensions,
-                mimeTypes: [archiveMimeType],
+                mimeTypes: const [archiveMimeType],
               ),
             ],
     );
     if (file == null) return null;
     if (!_isAndroid && !_hasArchiveExtension(file.name)) {
-      throw const ArchiveFormatException(
-        '请选择 .josymbolconverter 或 .joquoteconverter 存档文件。',
-      );
+      throw ArchiveFormatException(_l10n.archivePickInvalidFile);
     }
     return decode(await file.readAsBytes());
   }
 
   Future<ArchiveDocument> decodeFilePath(String path) async {
     if (!_hasArchiveExtension(path)) {
-      throw const ArchiveFormatException(
-        '请选择 .josymbolconverter 或 .joquoteconverter 存档文件。',
-      );
+      throw ArchiveFormatException(_l10n.archivePickInvalidFile);
     }
     return decode(await File(path).readAsBytes());
   }
@@ -469,7 +481,7 @@ class ArchiveService {
             fileName: p.basename(entity.path),
             sizeBytes: stat.size,
             modifiedAt: stat.modified,
-            errorMessage: '备份文件无法读取。',
+            errorMessage: _l10n.archiveErrorBackupUnreadable,
           ),
         );
       }
@@ -516,7 +528,7 @@ class ArchiveService {
     } catch (_) {
       // Converted below to a stable user-facing format error.
     }
-    throw ArchiveFormatException('$label无效。');
+    throw ArchiveFormatException(_l10n.archiveErrorLabelInvalid(label));
   }
 
   static Map<String, dynamic> _decodeJsonLine(String line) {
@@ -526,14 +538,14 @@ class ArchiveService {
     } catch (_) {
       // Converted below to a stable user-facing format error.
     }
-    throw const ArchiveFormatException('历史记录内容无效。');
+    throw ArchiveFormatException(_l10n.archiveErrorInvalidHistory);
   }
 
   static String _decodeUtf8(Uint8List bytes, String label) {
     try {
       return utf8.decode(bytes);
     } catch (_) {
-      throw ArchiveFormatException('$label不是有效的 UTF-8 文本。');
+      throw ArchiveFormatException(_l10n.archiveErrorLabelNotUtf8(label));
     }
   }
 

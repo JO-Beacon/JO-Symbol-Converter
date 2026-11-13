@@ -84,6 +84,14 @@ dart analyze
 flutter test
 ```
 
+构建 Microsoft Store 版本：
+
+```powershell
+flutter build windows --release --dart-define=STORE_BUILD=true
+```
+
+商店版本由 Microsoft Store 负责分发与更新，因此“关于”页不显示 GitHub 更新检查入口；普通构建不受影响。
+
 部分 Windows 原生构建工具对包含非 ASCII 字符的项目路径支持有限。如果构建失败，建议将项目放在纯英文路径中再执行构建。
 
 ## 项目结构
@@ -92,6 +100,7 @@ flutter test
 lib/
   main.dart             应用界面、主题、转换菜单与草稿恢复
   archive_service.dart  存档压缩、校验、导入导出与自动备份
+  build_config.dart     构建期开关（商店版本）
   converter_tool.dart   可选的转换类型（引号 / 逗号）
   text_converter.dart   按转换类型分发转换逻辑
   quote_converter.dart  引号转换
@@ -110,6 +119,7 @@ assets/
   licenses/             第三方字体许可证
 test/                   转换逻辑与界面测试
 installer/              Windows Inno Setup 安装程序脚本
+packaging/              MSIX 打包清单、打包脚本与输出目录
 ```
 
 ## 反馈与贡献

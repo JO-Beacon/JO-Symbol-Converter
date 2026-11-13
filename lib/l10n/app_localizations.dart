@@ -20,6 +20,21 @@ class AppLocalizations {
   static AppLocalizations of(BuildContext context) =>
       Localizations.of<AppLocalizations>(context, AppLocalizations)!;
 
+  static AppLocalizations _current = AppLocalizations(
+    const Locale('zh'),
+    _zhMessages,
+  );
+
+  /// 当前界面语言对应的文案。
+  ///
+  /// 供没有 `BuildContext` 的服务层（存档、更新检查）读取界面文案；界面
+  /// 尚未加载时按简体中文处理。
+  static AppLocalizations get current => _current;
+
+  /// 动态视图。文案通过 `noSuchMethod` 按符号名取值，接收者必须是 dynamic
+  /// 才能让调用走到 `noSuchMethod`。
+  static dynamic get strings => _current;
+
   @override
   dynamic noSuchMethod(Invocation invocation) {
     final key = _symbolName(invocation.memberName);
@@ -75,6 +90,10 @@ class AppLocalizations {
     'convertedSymbolCount': ['count'],
     'toolConvertedCount': ['tool', 'count'],
     'matchCount': ['current', 'total'],
+    'archiveErrorChecksumFailed': ['name'],
+    'archiveErrorLabelInvalid': ['label'],
+    'archiveErrorLabelNotUtf8': ['label'],
+    'updateErrorHttpStatus': ['status'],
   };
 }
 
@@ -89,10 +108,12 @@ class _AppLocalizationsDelegate
 
   @override
   Future<AppLocalizations> load(Locale locale) async {
-    return AppLocalizations(
+    final localizations = AppLocalizations(
       locale,
       locale.languageCode == 'en' ? AppLocalizations._en : AppLocalizations._zh,
     );
+    AppLocalizations._current = localizations;
+    return localizations;
   }
 
   @override
@@ -258,6 +279,38 @@ const Map<String, String> _zhMessages = {
   'currentVersionUpToDate': '当前版本 {version} 已是 GitHub 上的最新版本。',
   'checkForUpdatesFailed': '检查更新失败，请稍后重试',
   'unableToOpenLink': '无法打开链接',
+  'archiveTypeLabel': 'JO-符号转换存档',
+  'archiveFileNamePrefix': 'JO-符号转换',
+  'archiveImportButton': '导入',
+  'archiveExportButton': '导出',
+  'archivePickInvalidFile': '请选择 .josymbolconverter 或 .joquoteconverter 存档文件。',
+  'archiveLabelChecksums': '校验信息',
+  'archiveLabelManifest': '存档清单',
+  'archiveLabelWorkspace': '工作区数据',
+  'archiveLabelHistory': '历史记录',
+  'archiveErrorEmptyOrTooLarge': '存档为空或文件过大。',
+  'archiveErrorUnzipFailed': '无法解压存档。',
+  'archiveErrorInvalidPath': '存档包含无效路径。',
+  'archiveErrorDuplicateFile': '存档文件重复或内容过大。',
+  'archiveErrorTooLargeAfterExtract': '存档解压后内容过大。',
+  'archiveErrorUnreadable': '存档内容无法读取。',
+  'archiveErrorIncomplete': '存档结构不完整。',
+  'archiveErrorUnsupportedChecksum': '不支持此校验算法。',
+  'archiveErrorInvalidChecksumInfo': '校验信息无效。',
+  'archiveErrorChecksumFailed': '{name} 校验失败。',
+  'archiveErrorUnsupportedVersion': '不支持此存档版本。',
+  'archiveErrorInvalidManifest': '存档清单无效。',
+  'archiveErrorInvalidExportTime': '存档导出时间无效。',
+  'archiveErrorInvalidWorkspace': '工作区数据无效。',
+  'archiveErrorInvalidSettings': '存档设置无效。',
+  'archiveErrorInvalidHistory': '历史记录内容无效。',
+  'archiveErrorHistoryMismatch': '历史记录数量与清单不一致。',
+  'archiveErrorBackupUnreadable': '备份文件无法读取。',
+  'archiveErrorLabelInvalid': '{label}无效。',
+  'archiveErrorLabelNotUtf8': '{label}不是有效的 UTF-8 文本。',
+  'updateErrorNoConnection': '无法连接 GitHub',
+  'updateErrorInvalidVersionInfo': 'GitHub 返回的版本信息无效',
+  'updateErrorHttpStatus': 'GitHub 暂时无法提供版本信息（HTTP {status}）',
 };
 
 const Map<String, String> _enMessages = {
@@ -433,4 +486,42 @@ const Map<String, String> _enMessages = {
   'checkForUpdatesFailed':
       'Failed to check for updates. Please try again later.',
   'unableToOpenLink': 'Unable to open link',
+  'archiveTypeLabel': 'JO Symbol Converter archive',
+  'archiveFileNamePrefix': 'JO Symbol Converter',
+  'archiveImportButton': 'Import',
+  'archiveExportButton': 'Export',
+  'archivePickInvalidFile':
+      'Please choose a .josymbolconverter or .joquoteconverter archive file.',
+  'archiveLabelChecksums': 'checksum information',
+  'archiveLabelManifest': 'archive manifest',
+  'archiveLabelWorkspace': 'workspace data',
+  'archiveLabelHistory': 'history',
+  'archiveErrorEmptyOrTooLarge': 'The archive is empty or too large.',
+  'archiveErrorUnzipFailed': 'The archive could not be extracted.',
+  'archiveErrorInvalidPath': 'The archive contains an invalid path.',
+  'archiveErrorDuplicateFile':
+      'The archive contains duplicate files or oversized content.',
+  'archiveErrorTooLargeAfterExtract':
+      'The extracted archive content is too large.',
+  'archiveErrorUnreadable': 'The archive content could not be read.',
+  'archiveErrorIncomplete': 'The archive structure is incomplete.',
+  'archiveErrorUnsupportedChecksum':
+      'This checksum algorithm is not supported.',
+  'archiveErrorInvalidChecksumInfo': 'The checksum information is invalid.',
+  'archiveErrorChecksumFailed': 'Checksum verification failed for {name}.',
+  'archiveErrorUnsupportedVersion': 'This archive version is not supported.',
+  'archiveErrorInvalidManifest': 'The archive manifest is invalid.',
+  'archiveErrorInvalidExportTime': 'The archive export time is invalid.',
+  'archiveErrorInvalidWorkspace': 'The workspace data is invalid.',
+  'archiveErrorInvalidSettings': 'The archive settings are invalid.',
+  'archiveErrorInvalidHistory': 'The history content is invalid.',
+  'archiveErrorHistoryMismatch':
+      'The history count does not match the manifest.',
+  'archiveErrorBackupUnreadable': 'The backup file could not be read.',
+  'archiveErrorLabelInvalid': 'The {label} is invalid.',
+  'archiveErrorLabelNotUtf8': 'The {label} is not valid UTF-8 text.',
+  'updateErrorNoConnection': 'Unable to reach GitHub',
+  'updateErrorInvalidVersionInfo':
+      'GitHub returned invalid version information',
+  'updateErrorHttpStatus': 'GitHub is temporarily unavailable (HTTP {status})',
 };

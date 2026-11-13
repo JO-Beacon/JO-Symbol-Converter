@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'l10n/app_localizations.dart';
+
 final githubLatestReleaseUri = Uri.parse(
   'https://api.github.com/repos/JO-Beacon/JO-Symbol-Converter/releases/latest',
 );
@@ -58,7 +60,9 @@ class GitHubUpdateService {
     } on UpdateCheckException {
       rethrow;
     } catch (_) {
-      throw const UpdateCheckException('无法连接 GitHub');
+      throw UpdateCheckException(
+        AppLocalizations.strings.updateErrorNoConnection,
+      );
     }
 
     try {
@@ -86,7 +90,9 @@ class GitHubUpdateService {
       _parseVersion(release.version);
       return release;
     } on FormatException {
-      throw const UpdateCheckException('GitHub 返回的版本信息无效');
+      throw UpdateCheckException(
+        AppLocalizations.strings.updateErrorInvalidVersionInfo,
+      );
     }
   }
 
@@ -127,7 +133,7 @@ Future<String> _fetchJson(Uri uri) async {
     final body = await response.transform(utf8.decoder).join();
     if (response.statusCode != HttpStatus.ok) {
       throw UpdateCheckException(
-        'GitHub 暂时无法提供版本信息（HTTP ${response.statusCode}）',
+        AppLocalizations.strings.updateErrorHttpStatus(response.statusCode),
       );
     }
     return body;

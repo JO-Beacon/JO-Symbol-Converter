@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'archive_service.dart';
+import 'build_config.dart';
 import 'converter_tool.dart';
 import 'draft_store.dart';
 import 'history_store.dart';
@@ -28,15 +29,6 @@ final appAuthorUrl = Uri.parse('https://github.com/JO-Beacon/');
 enum AppPalette { red, yellow, green, blue, purple, gray }
 
 extension AppPaletteStyle on AppPalette {
-  String get label => switch (this) {
-    AppPalette.red => '红',
-    AppPalette.yellow => '黄',
-    AppPalette.green => '绿',
-    AppPalette.blue => '蓝',
-    AppPalette.purple => '紫',
-    AppPalette.gray => '灰',
-  };
-
   Color get color => switch (this) {
     AppPalette.red => const Color(0xFFCC4C45),
     AppPalette.yellow => const Color(0xFFD6A626),
@@ -3271,25 +3263,26 @@ class _AboutSettingsPageState extends State<_AboutSettingsPage> {
             ),
           ),
         ),
-        ListTile(
-          key: const Key('aboutCheckForUpdates'),
-          contentPadding: EdgeInsets.zero,
-          leading: const Icon(Icons.system_update_outlined),
-          title: Text(l10n.checkForUpdatesTitle),
-          subtitle: Text(
-            _isCheckingUpdate
-                ? l10n.checkingForUpdates
-                : l10n.checkGitHubReleases,
+        if (!kStoreBuild)
+          ListTile(
+            key: const Key('aboutCheckForUpdates'),
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.system_update_outlined),
+            title: Text(l10n.checkForUpdatesTitle),
+            subtitle: Text(
+              _isCheckingUpdate
+                  ? l10n.checkingForUpdates
+                  : l10n.checkGitHubReleases,
+            ),
+            trailing: _isCheckingUpdate
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.refresh_rounded),
+            onTap: _isCheckingUpdate ? null : _checkForUpdates,
           ),
-          trailing: _isCheckingUpdate
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Icon(Icons.refresh_rounded),
-          onTap: _isCheckingUpdate ? null : _checkForUpdates,
-        ),
         ListTile(
           key: const Key('aboutAuthor'),
           contentPadding: EdgeInsets.zero,
