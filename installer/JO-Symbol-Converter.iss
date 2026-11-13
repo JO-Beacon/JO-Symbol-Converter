@@ -1,6 +1,11 @@
 #define MyAppName "JO-符号转换"
-#define MyAppVersion "0.0.6"
-#define MyAppFullVersion "0.0.6+6"
+; 版本号可由命令行覆盖：ISCC /DMyAppVersion=0.0.6 /DMyAppFullVersion=0.0.6+6
+#ifndef MyAppVersion
+  #define MyAppVersion "0.0.6"
+#endif
+#ifndef MyAppFullVersion
+  #define MyAppFullVersion "0.0.6+6"
+#endif
 #define MyAppPublisher "JO-Beacon"
 #define MyAppExeName "jo_symbol_converter.exe"
 #define MyArchiveClass "JOSymbolConverter.Archive"
