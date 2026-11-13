@@ -1,10 +1,22 @@
-# JO-Symbol-Converter
+<div align="center">
 
-> Simplified Chinese: [README.md](README.md)
+  <img src="assets/images/jo_symbol_converter_icon.png" alt="JO Symbol Converter" width="100" />
+  <h1>JO Symbol Converter</h1>
 
-JO-Symbol-Converter is a local Flutter text tool that converts English straight quotes into Chinese curly quotes and English half-width commas, colons, exclamation marks, question marks, and semicolons into their Chinese full-width counterparts. It targets Windows and Android. Text processing and draft saving happen locally on the device; only manual update checks access GitHub Releases.
+  <h2>A local text tool that turns English half-width punctuation into Chinese full-width punctuation in one click.</h2>
 
-Author: GitHub [JO-Beacon](https://github.com/JO-Beacon)
+  <p>
+    <a href="https://github.com/JO-Beacon/JO-Symbol-Converter/releases/latest">GitHub releases</a>
+  </p>
+
+  <p>
+    <a href="README.md">简体中文</a> ·
+    <b>English</b>
+  </p>
+
+</div>
+
+JO Symbol Converter is a local text tool built with Flutter. It turns English half-width punctuation into Chinese full-width punctuation: double quotes, single quotes, commas, colons, exclamation marks, question marks and semicolons — six types that can be selected individually or converted all at once. It targets Windows and Android, and text processing and drafts stay on the device. The Microsoft Store build makes no network requests; the GitHub build only reads public Release information when you check for updates manually.
 
 ## Features
 
@@ -39,7 +51,7 @@ Author: GitHub [JO-Beacon](https://github.com/JO-Beacon)
 - Windows installed builds associate `.josymbolconverter` and `.joquoteconverter` archives so double-clicking an archive opens the app with import-mode selection
 - Before import completes, automatically create a pre-import backup in the app's local data directory; restore it if the import fails
 - Manage automatic backups in Settings: view time, version, history count, and file size; restore, delete individually, or clear all
-- About page supports manual checking for the latest GitHub Release and opens the release page when an update is available
+- About page supports manual checking for the latest GitHub Release and opens the release page when an update is available (this entry is hidden in the Microsoft Store build)
 - Settings use categorized lists for language, appearance, behavior, keyboard shortcuts, data and archives, and about; UI language supports Simplified Chinese and English, defaulting to Simplified Chinese
 - Windows supports `Ctrl+Enter` to convert the current text, and keyboard shortcuts can be disabled from Shortcut Settings
 - The Convert button has a multi-select dropdown menu for “Quotes”, “Commas”, “Colons”, “Exclamations”, “Question marks”, and “Semicolons”, with all types selected by default; the button applies every selected type in one tap (disabled when none is selected)
@@ -62,7 +74,7 @@ Drafts are saved automatically as text changes. The app also writes the current 
 
 ## Data & Privacy
 
-The app does not require an account, does not upload text, and has no backend service. Manual update checks only read public GitHub Release information and do not send workspace text. Conversion history is stored locally in SQLite in the device's app data directory. Current drafts and related options are stored locally through Flutter `shared_preferences`.
+The app does not require an account, does not upload text, and has no backend service. The Microsoft Store build makes no network requests; the GitHub build only reads public Release information during a manual update check and never sends workspace text. Conversion history is stored locally in SQLite in the device's app data directory. Current drafts and related options are stored locally through Flutter `shared_preferences`.
 
 Pre-import automatic backups are stored locally in the app support directory under `backups` and are never uploaded. View, restore, or clean them in “Settings → Data & Archives → Automatic Backups”. Restoring an automatic backup overwrites the current workspace, settings, and all history, and makes another backup of the current data before restoring. Smart merge keeps a non-empty workspace and current settings; for history, it keeps existing entries and skips entries whose source, result, and time are exactly the same. Full overwrite replaces the workspace, settings, and all history with the archive contents.
 
@@ -92,7 +104,7 @@ Some Windows native build tools have limited support for project paths containin
 lib/
   main.dart             App UI, theme, and draft restoration
   archive_service.dart  Archive compression, verification, import/export, and automatic backups
-  converter_tool.dart    Selectable conversion types (quotes / commas)
+  converter_tool.dart    Selectable conversion types (quotes / commas / colons / exclamation marks / question marks / semicolons)
   text_converter.dart    Dispatches conversion based on the selected type
   quote_converter.dart   Quote conversion
   comma_converter.dart   Comma conversion
@@ -104,12 +116,14 @@ lib/
   draft_store.dart      Local draft storage
   history_store.dart    SQLite history storage and legacy data migration
   update_service.dart   GitHub Release update checks
+  build_config.dart     Build-time switch (Microsoft Store build)
 assets/
   fonts/                Source Han Sans font files
   images/               App icon resources
   licenses/             Third-party font licenses
 test/                   Conversion logic and UI tests
 installer/              Windows Inno Setup installer scripts
+packaging/              MSIX manifest, packaging script and output directory
 ```
 
 ## Feedback & Contributions

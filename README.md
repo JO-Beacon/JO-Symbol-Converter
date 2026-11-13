@@ -1,10 +1,22 @@
-# JO-符号转换
+<div align="center">
 
-> English: [README_en.md](README_en.md)
+  <img src="assets/images/jo_symbol_converter_icon.png" alt="JO-符号转换" width="100" />
+  <h1>JO-符号转换</h1>
 
-JO-符号转换是一个使用 Flutter 开发的本地文本工具，用于将英文直引号转换为中文弯引号，也可将英文半角逗号、半角冒号、半角感叹号、半角问号、半角分号分别转换为对应中文全角符号。目前面向 Windows 和 Android，文本处理与草稿保存均在设备本地完成；手动检查更新时会访问 GitHub Releases。
+  <h2>一个把英文半角标点一键改成中文全角标点的本地文本工具。</h2>
 
-作者：GitHub [JO-Beacon](https://github.com/JO-Beacon)
+  <p>
+    <a href="https://github.com/JO-Beacon/JO-Symbol-Converter/releases/latest">GitHub 发布页</a>
+  </p>
+
+  <p>
+    <b>简体中文</b> ·
+    <a href="README_en.md">English</a>
+  </p>
+
+</div>
+
+JO-符号转换是一个使用 Flutter 开发的本地文本工具，用于把英文半角标点改成中文全角标点：双引号、单引号、逗号、冒号、感叹号、问号、分号共六类，可单独勾选，也可一次全部转换。目前面向 Windows 和 Android，文本处理与草稿保存均在设备本地完成。Microsoft Store 版本不发起任何网络请求；从 GitHub 获取的版本仅在手动检查更新时读取公开的 Release 信息。
 
 ## 功能
 
@@ -39,7 +51,7 @@ JO-符号转换是一个使用 Flutter 开发的本地文本工具，用于将�
 - Windows 安装版关联 `.josymbolconverter` 和 `.joquoteconverter` 存档，双击存档即可打开应用并选择导入模式
 - 确认导入后会先在应用本地数据目录生成一份导入前自动备份，导入失败时恢复原数据
 - 支持在设置中管理自动备份，可查看时间、版本、历史数量和文件大小，并可恢复、单独删除或批量清空
-- 关于页面支持手动检查 GitHub 最新 Release，发现新版本时可直接打开发布页
+- 关于页面支持手动检查 GitHub 最新 Release，发现新版本时可直接打开发布页（Microsoft Store 版本不显示此入口）
 - 设置使用分类列表，分别提供语言、外观、行为、快捷键、数据与存档和关于页面；界面语言支持简体中文和英语，默认使用简体中文
 - Windows 支持使用 `Ctrl+Enter` 转换当前文本，并可在快捷键设置中统一关闭键盘快捷键
 - “转换”按钮带有下拉菜单，默认全部勾选“转换引号”“转换逗号”“转换冒号”“转换感叹号”“转换问号”“转换分号”，也可取消其中任意几种；按钮一键按所选类型依次转换（未勾选任何类型时按钮不可用）
@@ -62,7 +74,7 @@ JO-符号转换是一个使用 Flutter 开发的本地文本工具，用于将�
 
 ## 数据与隐私
 
-本程序不需要账号，不会上传文本，也不包含应用后端服务。手动检查更新时只读取 GitHub 的公开 Release 信息，不会发送工作区文本。转换历史使用 SQLite 逐条保存在当前设备的应用数据目录中；当前草稿和相关选项通过 Flutter 的 `shared_preferences` 保存在当前设备上。
+本程序不需要账号，不会上传文本，也不包含应用后端服务。Microsoft Store 版本不发起任何网络请求；从 GitHub 获取的版本在手动检查更新时只读取公开的 Release 信息，不会发送工作区文本。转换历史使用 SQLite 逐条保存在当前设备的应用数据目录中；当前草稿和相关选项通过 Flutter 的 `shared_preferences` 保存在当前设备上。
 
 导入存档前生成的自动备份保存在当前设备的应用支持目录 `backups` 子目录中，不会上传。可在“设置 → 数据与存档 → 自动备份”中查看、恢复或清理；恢复自动备份会覆盖当前工作区、设置和全部历史记录，并在恢复前再次备份当前数据。智能合并会保留非空工作区和当前设置，历史记录则保留现有记录并跳过原文、结果和时间完全相同的记录；完全覆盖会以存档替换工作区、设置和全部历史记录。
 
@@ -101,7 +113,7 @@ lib/
   main.dart             应用界面、主题、转换菜单与草稿恢复
   archive_service.dart  存档压缩、校验、导入导出与自动备份
   build_config.dart     构建期开关（商店版本）
-  converter_tool.dart   可选的转换类型（引号 / 逗号）
+  converter_tool.dart   可选的转换类型（引号 / 逗号 / 冒号 / 感叹号 / 问号 / 分号）
   text_converter.dart   按转换类型分发转换逻辑
   quote_converter.dart  引号转换
   comma_converter.dart  逗号转换
