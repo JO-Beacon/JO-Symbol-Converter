@@ -6,6 +6,7 @@
   <h2>A local text tool that turns English half-width punctuation into Chinese full-width punctuation in one click.</h2>
 
   <p>
+    <a href="https://apps.microsoft.com/detail/9MXNRTGN7KCC">Microsoft Store</a> ·
     <a href="https://github.com/JO-Beacon/JO-Symbol-Converter/releases/latest">GitHub releases</a>
   </p>
 
